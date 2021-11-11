@@ -1,38 +1,13 @@
-use log::info;
-use thruster::{async_middleware, middleware_fn};
-use thruster::{App, BasicContext as Ctx, Request, Server, ThrusterServer};
-use thruster::{MiddlewareNext, MiddlewareResult};
-
-#[middleware_fn]
-async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let val = "Hello, World!";
-    context.body(val);
-    Ok(context)
-}
-
-#[middleware_fn]
-async fn noop(context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    Ok(context)
-}
+mod server;
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
-    info!("Starting server...");
+    let hostname = "0.0.0.0";
+    let base_port: u16 = 8000;
 
-    let mut app = App::<Request, Ctx, ()>::new_basic();
-
-    app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
-
-    let server = Server::new(app);
-    tokio::spawn(server.build("0.0.0.0", 4321));
-
-    let mut healthcheck = App::<Request, Ctx, ()>::new_basic();
-
-    healthcheck.get("/healthz", async_middleware!(Ctx, [noop]));
-
-    let healthcheck_server = Server::new(healthcheck);
-    tokio::spawn(healthcheck_server.build("0.0.0.0", 8080));
+    for i in 0..3{
+        server::new_server(&hostname, base_port+i as u16)
+    }
 
     futures::future::pending().await
 }
